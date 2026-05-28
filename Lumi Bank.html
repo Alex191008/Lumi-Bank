@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LumiBank - Sistema Bancario</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="screen-overlay">
+        <div class="login-box">
+            <div class="bank-icon-container">
+                <h2 style="margin: 0; color: var(--accent);"> LumiBank</h2>
+            </div>            
+            <div class="login-mode-switch">
+                <button id="modeStaffBtn" class="mode-btn active" onclick="impostaModalita('staff')">Staff</button>
+                <button id="modeClienteBtn" class="mode-btn" onclick="impostaModalita('cliente')">Cliente</button>
+            </div>
+            <h3 id="loginSubtitle">Sistema Bancario</h3>
+            <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;" id="loginHint">Accedi come amministratore</p>
+            <div id="staffLoginFields" class="login-inputs">
+                <input type="text" id="username" placeholder="Username (admin)">
+                <input type="password" id="password" placeholder="Password (1234)">
+                    <button type="button" class="btn-login" onclick="entraNelSistema()">ACCEDI</button>
+            </div>
+            <div id="clientLoginCta" class="login-inputs hidden">
+                <div id="clientLoginFields" class="login-inputs">
+                    <input type="email" id="clientEmailLogin" placeholder="Email">
+                    <input type="password" id="clientPasswordLogin" placeholder="Password">
+                    <button type="button" class="btn-login" onclick="loginCliente()">ACCEDI</button>
+                    <p style="color: #666; font-size: 0.85rem; margin-top: 10px;">Non hai un account? <button type="button" class="link-btn" onclick="mostraRegistrazioneCliente()">Registrati</button></p>
+                </div>
+                <div id="clientRegisterFields" class="login-inputs hidden">
+                    <input type="email" id="clientEmailReg" placeholder="Email">
+                    <input type="text" id="clientNomeReg" placeholder="Nome">
+                    <input type="text" id="clientCognomeReg" placeholder="Cognome">
+                    <input type="password" id="clientPasswordReg" placeholder="Password">
+                    <input type="password" id="clientPasswordConfirmReg" placeholder="Conferma Password">
+                    <button type="button" class="btn-login" onclick="registraCliente()">REGISTRATI</button>
+                    <p style="color: #666; font-size: 0.85rem; margin-top: 10px;">Hai già un account? <button type="button" class="link-btn" onclick="mostraLoginCliente()">Accedi</button></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APPLICATION -->
+    <div id="mainApp" class="app-container hidden">
+        
+        <!-- NAVIGATION -->
+        <nav class="navbar">
+            <div class="nav-brand"> LumiBank</div>
+            <div class="nav-mode-label" id="userModeLabel">Modalità: Staff</div>
+            <div class="nav-menu">
+                <button class="nav-btn active" onclick="mostraSezione('dashboard')"> Dashboard</button>
+                <button id="nuovoContoNavBtn" class="nav-btn" onclick="mostraSezione('nuovoConto')"> Nuovo Conto</button>
+                <button id="operazioniNavBtn" class="nav-btn" style="display:none;" onclick="mostraSezione('operazioni')"> Operazioni</button>
+                <button id="accountSettingsNavBtn" class="nav-btn" style="display:none;" onclick="mostraSezione('impostazioniAccount')"> Impostazioni</button>
+                <button id="manageUsersBtn" class="nav-btn" onclick="mostraSezione('gestioneAccount')"> Gestione Conti</button>
+                <button class="nav-btn" onclick="mostraSezione('prestiti')"> Prestiti / Mutui</button>
+                <button class="nav-btn" onclick="confermaLogout()"> Logout</button>
+            </div>
+        </nav>
+
+        <!-- DASHBOARD SECTION -->
+        <div id="dashboardSection" class="section active">
+            <div class="section-header">
+                <h2 id="dashboardTitle">I Tuoi Conti Bancari</h2>
+            </div>
+
+            <div id="accountsList" class="accounts-grid">
+                <div class="empty-state">
+                    <p>Nessun conto trovato. Creane uno nuovo!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE OPERAZIONI CLIENTE -->
+        <div id="operazioniSection" class="section hidden">
+            <div class="section-header">
+                <h2>Operazioni conto</h2>
+            </div>
+            <div class="form-container">
+                <div class="form-section">
+                    <h3>Registrare entrata o uscita</h3>
+                    <div class="grid-container">
+                        <div class="input-field full-width">
+                            <label>Seleziona il conto</label>
+                            <select id="operazioniAccountSelect" onchange="aggiornaOperazioniAccountInfo()">
+                                <option value="">Seleziona un conto</option>
+                            </select>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Saldo corrente</label>
+                            <p id="operazioniSaldo">€ 0,00</p>
+                        </div>
+                        <div class="input-field">
+                            <label>Tipo movimento</label>
+                            <select id="tipoMovimentoOperazioni">
+                                <option value="Entrata">Entrata</option>
+                                <option value="Uscita">Uscita</option>
+                            </select>
+                        </div>
+                        <div class="input-field">
+                            <label>Importo (€)</label>
+                            <input type="number" id="importoMovimentoOperazioni" placeholder="Importo" min="0" step="0.01">
+                        </div>
+                        <div class="input-field full-width">
+                            <label>Causale</label>
+                            <input type="text" id="causaleMovimentoOperazioni" placeholder="Descrizione della operazione">
+                        </div>
+                    </div>
+                    <button class="btn-action" onclick="registraMovimentoOperazioni()">Registra Movimento</button>
+                </div>
+                <div class="form-section">
+                    <h3>Ultimi movimenti</h3>
+                    <div id="operazioniRecentiMovimenti" class="movimenti-list">
+                        <p class="empty-text">Seleziona un conto per vedere gli ultimi movimenti.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GESTIONE CONTI SECTION -->
+        <div id="gestioneAccountSection" class="section hidden">
+            <div class="section-header">
+                <h2>Gestione Conti</h2>
+            </div>
+            <div class="form-container" style="margin-bottom: 16px;">
+                <div class="grid-container">
+                    <div class="input-field full-width">
+                        <label>Ricerca conti (IBAN o titolare) - Solo Staff</label>
+                        <input type="text" id="gestioneSearchInput" placeholder="Inserisci IBAN o nome titolare" class="search-box">
+                    </div>
+                    <div class="input-field full-width">
+                        <button type="button" class="btn-action" onclick="cercaContiInGestione()">Cerca conti</button>
+                    </div>
+                </div>
+            </div>
+            <div id="gestioneContiList" class="accounts-grid">
+                <div class="empty-state">
+                    <p>Nessun conto trovato.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRESTITI E MUTUI SECTION -->
+        <div id="prestitiSection" class="section hidden">
+            <div class="section-header">
+                <h2>Prestiti e Mutui</h2>
+            </div>
+
+            <div class="form-container">
+                <div id="prestitoRichiestaForm" class="form-section">
+                    <h3>Richiedi un prestito</h3>
+                    <div class="grid-container">
+                        <div class="input-field">
+                            <label>Tipo</label>
+                            <select id="tipoPrestito">
+                                <option value="Prestito">Prestito</option>
+                                <option value="Mutuo">Mutuo</option>
+                            </select>
+                        </div>
+                        <div class="input-field">
+                            <label>Importo (€)</label>
+                            <input type="number" id="importoPrestito" placeholder="es. 10000" min="0" step="0.01">
+                        </div>
+                        <div class="input-field">
+                            <label>Durata (mesi)</label>
+                            <input type="number" id="durataPrestito" placeholder="es. 60" min="1" step="1">
+                        </div>
+                        <div class="input-field">
+                            <label>Tasso d'interesse (%)</label>
+                            <input type="number" id="tassoPrestito" placeholder="es. 3.5" min="0" step="0.01">
+                        </div>
+                        <div class="input-field full-width">
+                            <label>Motivazione</label>
+                            <textarea id="motivazionePrestito" rows="3" placeholder="Descrivi l'utilizzo del prestito"></textarea>
+                        </div>
+                    </div>
+                    <button class="btn-activate" onclick="richiediPrestito()">Invia richiesta</button>
+                </div>
+
+                <div class="form-section">
+                    <h3>Richieste prestiti</h3>
+                    <div id="prestitiList" class="accounts-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- IMPOSTAZIONI ACCOUNT SECTION -->
+        <div id="accountSettingsSection" class="section hidden">
+            <div class="section-header">
+                <h2>Impostazioni</h2>
+            </div>
+            <div class="form-container">
+                <div class="form-section">
+                    <h3>Dati account</h3>
+                    <div class="info-grid">
+                        <div class="info-item full-width">
+                            <label>Nome completo</label>
+                            <p id="settingsNome"></p>
+                        </div>
+                        <div class="info-item">
+                            <label>Email</label>
+                            <p id="settingsEmail"></p>
+                        </div>
+                        <div class="info-item">
+                            <label>Registrato il</label>
+                            <p id="settingsRegistrato"></p>
+                        </div>
+                        <div class="info-item">
+                            <label>Conti associati</label>
+                            <p id="settingsContiCount"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3>Gestione account</h3>
+                    <p style="color:#555; line-height:1.5;">Da qui puoi gestire le informazioni del tuo account. L'eliminazione dell'account rimuoverà definitivamente tutti i tuoi conti e le richieste associate.</p>
+                    <button class="btn-danger" onclick="eliminaAccountCliente()">Elimina account</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NUOVO CONTO SECTION -->
+        <div id="nuovoContoSection" class="section hidden">
+            <div class="section-header">
+                <h2>Attiva Nuovo Conto</h2>
+            </div>
+
+            <div class="form-container">
+                <div class="form-section">
+                    <h3> Dati Titolare Principale</h3>
+                    <div class="grid-container">
+                        <div class="input-field">
+                            <label>Nome</label>
+                            <input type="text" id="nomeUtente" placeholder="Mario">
+                        </div>
+                        <div class="input-field">
+                            <label>Cognome</label>
+                            <input type="text" id="cognomeUtente" placeholder="Rossi">
+                        </div>
+                        <div class="input-field full-width">
+                            <label>Codice Fiscale</label>
+                            <input type="text" id="codiceFiscale" placeholder="16 caratteri" maxlength="16" style="text-transform: uppercase;">
+                        </div>
+                        <div class="input-field">
+                            <label>Data di Nascita</label>
+                            <input type="date" id="dataNascita">
+                        </div>
+                        <div class="input-field">
+                            <label>Telefono</label>
+                            <input type="text" id="contatti" placeholder="es. +39 3912345678">
+                        </div>
+                        <div class="input-field">
+                            <label>Luogo di Nascita</label>
+                            <input type="text" id="luogoNascita" placeholder="Roma">
+                        </div>
+                        <div class="input-field">
+                            <label>Provincia</label>
+                            <input type="text" id="provinciaNascita" maxlength="2" placeholder="RM" style="text-transform: uppercase;">
+                        </div>
+                        <div class="input-field full-width">
+                            <label>Indirizzo</label>
+                            <input type="text" id="indirizzo" placeholder="Via Roma, 123">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Cointestatari (Facoltativo - max 2 altri)</h3>
+                    <div id="cointestatariContainer"></div>
+                    <button class="btn-secondary" onclick="aggiungiCointestatario()" id="btnAggiungiCointestatario">+ Aggiungi Cointestatario</button>
+                </div>
+
+                <div class="form-section">
+                    <h3> Tipo di Conto</h3>
+                    <div class="conto-options">
+                        <label class="radio-option">
+                            <input type="radio" name="tipoConto" value="Canone Fisso" checked>
+                            <span class="option-label"> <strong>Canone Fisso</strong><br><small>€15/mese - Operazioni illimitate online e in filiale</small></span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="tipoConto" value="Senza Canone">
+                            <span class="option-label"> <strong>Senza Canone</strong><br><small>Online gratis - €3 per operazione in filiale</small></span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="tipoConto" value="Deposito">
+                            <span class="option-label"> <strong>Conto Deposito</strong><br><small>Solo versamento/prelevamento - Tasso interesse:</small></span>
+                            <input type="number" id="tassoInteresse" placeholder="es. 2.5" step="0.01" min="0" max="10" style="margin-top: 5px; width: 100px;">
+                            <span style="font-size: 0.85rem;">%</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button id="btnCreazioneConto" class="btn-activate" onclick="creaNuovoConto()">✓ ATTIVA CONTO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETTAGLI CONTO -->
+    <div id="dettagliContoModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Dettagli Conto</h2>
+                <button class="btn-close" onclick="chiudiModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="cambiaTab('infoTab', this)">Informazioni</button>
+                    <button class="tab-btn" onclick="cambiaTab('movimentiTab', this)">Movimenti</button>
+                    <button class="tab-btn" onclick="cambiaTab('operazioniTab', this)">Operazioni</button>
+                </div>
+
+                <!-- TAB INFORMAZIONI -->
+                <div id="infoTab" class="tab-content active">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>IBAN</label>
+                            <p id="modalIban" class="highlight">IT...</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Saldo</label>
+                            <p id="modalSaldo" class="highlight" style="font-size: 1.4rem; color: var(--accent);">€ 0,00</p>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Tipo Conto</label>
+                            <p id="modalTipoConto"></p>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Titolare/i</label>
+                            <p id="modalTitolari"></p>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Canone Mensile</label>
+                            <p id="modalCanone"></p>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="deleteAccountBtn" class="btn-danger" onclick="eliminaConto(contoSelezionato.id)"> Elimina Conto</button>
+                    </div>
+                </div>
+
+                <!-- TAB MOVIMENTI -->
+                <div id="movimentiTab" class="tab-content hidden">
+                    <div id="movimentiList" class="movimenti-list">
+                        <p class="empty-text">Nessun movimento ancora</p>
+                    </div>
+                </div>
+
+                <!-- TAB OPERAZIONI -->
+                <div id="operazioniTab" class="tab-content hidden">
+                    <div class="operazioni-grid">
+                        <div class="operazione-card">
+                            <h4>💵 Versamento</h4>
+                            <input type="number" id="importoVersamento" placeholder="Importo" min="0" step="0.01">
+                            <select id="tipoVersamento">
+                                <option value="Versamento sportello">Versamento in filiale</option>
+                                <option value="Versamento online">Versamento online</option>
+                            </select>
+                            <button class="btn-action" onclick="eseguiVersamento()">Effettua Versamento</button>
+                        </div>
+
+                        <div class="operazione-card">
+                            <h4>💸 Prelevamento</h4>
+                            <input type="number" id="importoPrelevamento" placeholder="Importo" min="0" step="0.01">
+                            <select id="tipoPrelevamento">
+                                <option value="Prelevamento sportello">Prelevamento in filiale</option>
+                                <option value="Prelevamento ATM">Prelevamento ATM</option>
+                            </select>
+                            <button class="btn-action" onclick="eseguiPrelevamento()">Effettua Prelevamento</button>
+                        </div>
+
+                        <div class="operazione-card">
+                            <h4> Bonifico</h4>
+                            <input type="text" id="ibanbonificio" placeholder="IBAN Destinatario">
+                            <input type="text" id="causalbonificio" placeholder="Causale">
+                            <input type="number" id="importobonificio" placeholder="Importo" min="0" step="0.01">
+                            <button class="btn-action" onclick="eseguiBonificio()">Effettua Bonifico</button>
+                        </div>
+
+                        <div class="operazione-card">
+                            <h4>↔ Giroconto</h4>
+                            <select id="contoDest" class="full-width">
+                                <option value="">Seleziona conto destinatario</option>
+                            </select>
+                            <input type="number" id="importoGiroconto" placeholder="Importo" min="0" step="0.01">
+                            <button class="btn-action" onclick="eseguiGiroconto()">Effettua Giroconto</button>
+                        </div>
+
+                        <div class="operazione-card">
+                            <h4>📘 Registra Entrata / Uscita</h4>
+                            <select id="tipoMovimentoGenerico">
+                                <option value="Entrata">Entrata</option>
+                                <option value="Uscita">Uscita</option>
+                            </select>
+                            <input type="number" id="importoMovimentoGenerico" placeholder="Importo" min="0" step="0.01">
+                            <input type="text" id="causaleMovimentoGenerico" placeholder="Causale / Descrizione">
+                            <button class="btn-action" onclick="registraMovimentoGenerico()">Registra Movimento</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL GESTIONE CLIENTE (STAFF) -->
+    <div id="gestioneClienteModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="gestioneClienteTitle">Gestione Cliente</h2>
+                <button class="btn-close" onclick="chiudiGestioneClienteModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <!-- Info Cliente -->
+                <div class="form-section">
+                    <h3>Informazioni Cliente</h3>
+                    <div class="info-grid">
+                        <div class="info-item full-width">
+                            <label>Nome</label>
+                            <p id="gestioneClienteNome"></p>
+                        </div>
+                        <div class="info-item">
+                            <label>Email</label>
+                            <p id="gestioneClienteEmail"></p>
+                        </div>
+                        <div class="info-item">
+                            <label>Registrato il</label>
+                            <p id="gestioneClienteData"></p>
+                        </div>
+                        <div class="info-item">
+                            <label>Saldo Totale</label>
+                            <p id="gestioneClienteSaldoTotale" style="font-size: 1.3rem; color: var(--accent); font-weight: bold;"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conti del Cliente -->
+                <div class="form-section">
+                    <h3>Conti Associati</h3>
+                    <div id="gestioneClienteConti" class="accounts-grid"></div>
+                </div>
+
+                <!-- Ultimi Movimenti -->
+                <div class="form-section">
+                    <h3>Ultimi Movimenti</h3>
+                    <div id="gestioneClienteMovimenti" class="movimenti-list"></div>
+                </div>
+
+                <!-- Azioni -->
+                <div class="modal-actions">
+                    <button class="btn-danger" onclick="eliminaClienteStaff(clienteSelezionatoStaff.id)">Elimina Account Cliente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
